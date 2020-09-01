@@ -1,60 +1,96 @@
-# template-for-proposals
+# Modulus and Additional Integer Math
+Updated September 1, 2020
 
-A repository template for ECMAScript proposals.
+## Status
 
-## Before creating a proposal
+Champion: Peter Hoddie (assisted by Dan Ehrenberg)
 
-Please ensure the following:
-  1. You have read the [process document](https://tc39.github.io/process-document/)
-  1. You have reviewed the [existing proposals](https://github.com/tc39/proposals/)
-  1. You are aware that your proposal requires being a member of TC39, or locating a TC39 delegate to "champion" your proposal
+## Stage: 0
 
-## Create your proposal repo
+## Motivation
+This proposal consists of two related extensions to the `Math` object: integer math and true modulus.
 
-Follow these steps:
-  1.  Click the green ["use this template"](https://github.com/tc39/template-for-proposals/generate) button in the repo header. (Note: Do not fork this repo in GitHub's web interface, as that will later prevent transfer into the TC39 organization)
-  1.  Go to your repo settings “Options” page, under “GitHub Pages”, and set the source to the **main branch** under the root (and click Save, if it does not autosave this setting)
-      1. check "Enforce HTTPS"
-      1. On "Options", under "Features", Ensure "Issues" is checked, and disable "Wiki", and "Projects" (unless you intend to use Projects)
-      1. Under "Merge button", check "automatically delete head branches"
-<!--
-  1.  Avoid merge conflicts with build process output files by running:
-      ```sh
-      git config --local --add merge.output.driver true
-      git config --local --add merge.output.driver true
-      ```
-  1.  Add a post-rewrite git hook to auto-rebuild the output on every commit:
-      ```sh
-      cp hooks/post-rewrite .git/hooks/post-rewrite
-      chmod +x .git/hooks/post-rewrite
-      ```
--->
-  3.  ["How to write a good explainer"][explainer] explains how to make a good first impression.
+### Integer Math
+Integer math operations are often more efficient than floating point math. This tends to be true even in hardware with an FPU.
 
-      > Each TC39 proposal should have a `README.md` file which explains the purpose
-      > of the proposal and its shape at a high level.
-      >
-      > ...
-      >
-      > The rest of this page can be used as a template ...
+While ECMA-262 defines mathematical operations in terms of floating point numbers, some engines (XS) and ECMAScript compilers (Emscripten) implement optimizations to use integers where the result is unobservable.
 
-      Your explainer can point readers to the `index.html` generated from `spec.emu`
-      via markdown like
+Engines can infer some situations where integer optimizations are possible, but it is not always practical. For this reason, ES6 added [`Math.imul`](https://tc39.es/ecma262/#sec-math.imul) to allow source text to directly express a 32-bit signed integer multiply operation.
 
-      ```markdown
-      You can browse the [ecmarkup output](https://ACCOUNT.github.io/PROJECT/)
-      or browse the [source](https://github.com/ACCOUNT/PROJECT/blob/HEAD/spec.emu).
-      ```
+This proposal introduces additional static methods on `Math` for signed 32-bit integer values.
 
-      where *ACCOUNT* and *PROJECT* are the first two path elements in your project's Github URL.
-      For example, for github.com/**tc39**/**template-for-proposals**, *ACCOUNT* is "tc39"
-      and *PROJECT* is "template-for-proposals".
+### Modulus
+The `%` operator is often incorrectly referred to as the "modulo operator" but the actual operation is [remainder](https://tc39.es/ecma262/#sec-numeric-types-number-remainder):
 
+Remainder and modulo operations are equivalent for positive inputs, but not negative values. [This article](https://rob.conery.io/2018/08/21/mod-and-remainder-are-not-the-same/) describes the differences.
 
-## Maintain your proposal repo
+Brendan Eich [recently noted](https://twitter.com/BrendanEich/status/1295366640259874818):
 
-  1. Make your changes to `spec.emu` (ecmarkup uses HTML syntax, but is not HTML, so I strongly suggest not naming it ".html")
-  1. Any commit that makes meaningful changes to the spec, should run `npm run build` and commit the resulting output.
-  1. Whenever you update `ecmarkup`, run `npm run build` and commit any changes that come from that dependency.
+> ...we still need to add mod (as distinct from C-like %) to JS.
 
-  [explainer]: https://github.com/tc39/how-we-work/blob/HEAD/explainer.md
+This proposal introduces additional static methods on `Math` for the modulus operation on `Number` and signed 32-bit integer values.
+
+## Use cases
+
+- Engine optimizations (targets without an FPU, in particular)
+- Compiler optimizations
+- Application optimizations - [J5e](https://j5e.dev) (embedded robotics)
+
+## Description
+
+- `Math.mod(x, y)` – IEEE 754 modulus
+- `Math.idiv(x, y)` – Int32 division
+- `Math.imod(x, y)` – Int32 modulus
+- `Math.idivmod(x, y)` – Int32 division with modulus, returns `[division result, modulus result]`
+- `Math.imuldiv(x, y, z)` – Int32 multiply and divide with 64-bit intermediate result -  `(x * y) / z`
+- `Math.irem(x, y)` – Int32 remainder
+
+## Comparison
+
+Most languages provide some subset of these integer and modulo operations. This section contains examples from Python and Ruby.
+
+### Python
+
+- `math.remainder` and `math.fmod`
+
+> ...fmod() is generally preferred when working with floats, while Python’s x % y is preferred when working with integers.
+
+But... `%` is defined as "remainder"
+
+- //
+
+> floored quotient... Also referred to as integer division
+
+- `divmod(x, y)`
+
+> [returns] the pair (x // y, x % y)
+
+### Ruby
+
+- `x.divmod(y)` – returns `[quotient, modulus]`
+- `x.modulo(y)` – `x - y * (x / y).floor`
+- `x.remainder(y)` – `x - y * (x / y).truncate`.
+
+## Implementations
+
+### Polyfill/transpiler implementations
+
+- (none)
+
+### Native implementations
+
+- [XS](https://github.com/Moddable-OpenSource/moddable/blob/e9b1ea4a4f09782b9af3526063968657483bfbdd/xs/sources/xsMath.c#L296-L382) - initial implementation
+
+## Q&A
+
+**Q**: Why not use operators instead of static methods?
+
+**A**: This proposal follows the approach established by `Math.imul`. If ECMAScript supports operator overloading in the future, developers may apply operators here.
+
+**Q**: Why does this need to be built-in, instead of being implemented in ECMAScript?
+
+**A**: These static methods allow engines to optimize in ways that are impractical with equivalent functions implemented in ECMAScript.
+
+**Q**: Do these static methods accept `BigInt` arguments?
+
+**A**: No, to be consistent with the other static methods on `Math`, including `Math.imul`. There is no fundamental objection to supporting `BigInt` where it makes sense should that be the committee's preference.
