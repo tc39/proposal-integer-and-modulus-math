@@ -22,7 +22,7 @@ This proposal introduces additional static methods on `Math` for signed 32-bit i
 ### Modulus
 The `%` operator is often incorrectly referred to as the "modulo operator" but the actual operation is [remainder](https://tc39.es/ecma262/#sec-numeric-types-number-remainder):
 
-Remainder and modulo operations are equivalent for positive inputs, but not negative values. [This article](https://rob.conery.io/2018/08/21/mod-and-remainder-are-not-the-same/) describes the differences.
+Remainder and modulo operations are equivalent for positive inputs, but not negative values. [This article](https://rob.conery.io/2018/08/21/mod-and-remainder-are-not-the-same) describes the differences.
 
 Brendan Eich [recently noted](https://twitter.com/BrendanEich/status/1295366640259874818):
 
