@@ -1,5 +1,5 @@
 # Modulus and Additional Integer Math
-Updated June 29, 2023
+Updated June 30, 2023
 
 ## Status
 
@@ -10,16 +10,18 @@ Champion: Peter Hoddie (assisted by Dan Ehrenberg)
 ## Motivation
 This proposal consists of two related extensions to the `Math` object: additional functions for integer math and true modulus for integers and floats.
 
-### Integer Math
-Integer math operations are often more efficient than floating point math. This tends to be true even in hardware with an FPU.
+This proposal adds functionality that missing from ECMAScript. It does so in way that is ergonomic for developers and allows for efficient implementation by engines across a wide range of hardware. While there is some overlap in functionality with WebAssembly and asm.js, this proposal is independent of those.
 
-While ECMA-262 defines mathematical operations in terms of floating point numbers, some engines (XS) and ECMAScript compilers (Emscripten) implement optimizations to use integers where the result is unobservable.
+### Integer Math
+Integer math operations are often more efficient than floating point math. This tends to be true even on CPUs with an FPU.
+
+This proposal introduces additional static methods on `Math` for signed 32-bit integer values.
+
+While ECMA-262 defines mathematical operations in terms of floating point numbers, engines and ECMAScript compilers may implement optimizations to use integers where there is no observable difference in the result.
 
 Engines can infer some situations where integer optimizations are possible, but it is not always practical. For this reason, ES6 added [`Math.imul`](https://tc39.es/ecma262/#sec-math.imul) to allow source text to directly express a 32-bit signed integer multiply operation.
 
 In addition to being more efficient, integer math operators can be more ergonomic than performing a floating point operation and then converting the result to an integer. The integer divide, integer modulus, integer remainder, and integer random are examples.
-
-This proposal introduces additional static methods on `Math` for signed 32-bit integer values.
 
 ### Modulus
 The `%` operator is often incorrectly referred to as the "modulo operator" but the actual operation is [remainder](https://tc39.es/ecma262/#sec-numeric-types-number-remainder):
@@ -32,14 +34,14 @@ Brendan Eich [noted](https://twitter.com/BrendanEich/status/1295366640259874818)
 
 This proposal introduces additional static methods on `Math` for the modulus operation on `Number` and signed 32-bit integer values.
 
-The MDN page for [Math.remainder](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Remainder) has a long paragraph that explains the difference between remainder and modulus, a formula for modulus, and a confusing note that begins "In JavaScript, the modulo operation (which doesn't have a dedicated operator)...".
+The MDN page for [Math Remainder](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Remainder) has a long paragraph that explains the difference between remainder and modulus, a formula for modulus, and a confusing note that begins "In JavaScript, the modulo operation (which doesn't have a dedicated operator)...".
 
 ## Use cases
 
-- Engine optimizations (targets without an FPU, in particular)
+- Engine optimizations
 - Compiler optimizations
 - Simplified script code for supported integer operations
-- Application optimizations - [J5e](https://j5e.dev) (embedded robotics)
+- Script optimizations - [J5e](https://j5e.dev) (embedded robotics)
 
 ## Description
 
@@ -64,6 +66,8 @@ The behavior of this operation varies depending on the CPU architecture. Some ar
 - `Math.imuldiv` - result is `0`
 - `Math.irem` - result is `0`
 
+For architectures which already yield the proposed result, this special case adds no overhead; for those that do not, additional runtime checks are required.
+
 ### Add `Math.irandom()`
 
 Generating a random integer is awkward in JavaScript. MDN provides two examples to generate random integer on the `Math.random()` page, including a warning about a common mistake. Generating a random floating point value and then converting it to an integer has needless overhead.
@@ -72,7 +76,7 @@ Generating a random integer is awkward in JavaScript. MDN provides two examples 
  - `Math.irandom(x)` – Int32 value between `0` and `x - 1` (inclusive)
  - `Math.irandom(x, y)` – Int32 value between `x` and `y - 1` (inclusive). This matches the behavior of `getRandomInt` example on MDN.
 
-As with `Math.random()` there is no attempt to provide cryptographically secure random numbers.
+As with `Math.random()` there is **no** attempt here to provide cryptographically secure random numbers.
 
 `Math.irandom` is convenient for accessing a random element from an `Array`. Here `y` will usually be `undefined` as non-integer array indices are converted to strings. On the other hand, `z` is always one of the array elements.
 
@@ -84,7 +88,7 @@ let z = x[Math.irandom(x.length)];
 
 ### Remove
 
-The original version of this proposal included one operation which returned multiple values in an object. This are difficult to optimize and rare. Consequently, it is no longer part of this proposal.
+The original version of this proposal included one operation which returned multiple values in an object. This is difficult to optimize and rare. Consequently, it is no longer part of this proposal.
 
 - `Math.idivmod(x, y)` – Int32 division with modulus, returns `[division result, modulus result]`
 
