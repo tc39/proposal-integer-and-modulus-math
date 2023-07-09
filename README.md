@@ -1,5 +1,5 @@
 # Modulus and Additional Integer Math
-Updated June 30, 2023
+Updated July 9, 2023
 
 ## Status
 
@@ -63,7 +63,7 @@ The behavior of this operation varies depending on the CPU architecture. Some ar
 
 - `Math.idiv` - result is the value of `x` (-2147483648)
 - `Math.imod` - result is `0`
-- `Math.imuldiv` - result is `0`
+- `Math.imuldiv` - result is `-2147483648`
 - `Math.irem` - result is `0`
 
 For architectures which already yield the proposed result, this special case adds no overhead; for those that do not, additional runtime checks are required.
